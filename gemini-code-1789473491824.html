@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>האתר של עידו</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        /* סגנון לוגו בלונים תלת מימדי */
+        .logo {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ffcc00;
+            text-shadow: 3px 3px 0px #ff6600, 6px 6px 0px rgba(0,0,0,0.2);
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .blog-post {
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        .like-section, .comments-section {
+            margin-top: 15px;
+        }
+        .comment {
+            background: #eef2f5;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 8px;
+            position: relative;
+        }
+        /* עיצוב תג מנהל ובועות כתומות לתגובות אדמין */
+        .comment.admin {
+            background: #fff3e0;
+            border-right: 4px solid #ff9800;
+        }
+        .admin-badge {
+            background: #ff9800;
+            color: white;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 6px;
+            font-weight: bold;
+        }
+        input, textarea, button {
+            width: 100%;
+            margin-top: 8px;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">עידו</div>
+        <p>ברוכים הבאים לאתר והבלוג שלי!</p>
+    </header>
+
+    <div class="container">
+        <!-- אזור הבלוג -->
+        <div class="blog-post">
+            <h2>הפוסט הראשון שלי</h2>
+            <p>היום העליתי את האתר שלי ל-GitHub Pages! כאן תוכלו לקרוא עדכונים, להגיב ולתת לייק.</p>
+            
+            <!-- מערכת לייקים (מוגבל ללייק אחד) -->
+            <div class="like-section">
+                <button onclick="handleLike()">❤️ לייק (<span id="like-count">0</span>)</button>
+            </div>
+
+            <!-- מערכת תגובות -->
+            <div class="comments-section">
+                <h3>תגובות</h3>
+                <div id="comments-list"></div>
+                
+                <input type="text" id="comment-author" placeholder="השם שלך (כתוב 'עידו' בשביל מנהל)">
+                <textarea id="comment-text" placeholder="כתוב תגובה..."></textarea>
+                <input type="file" id="comment-image" accept="image/*">
+                <button onclick="addComment()">הוסף תגובה</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ניהול לייקים מקומי
+        let likes = localStorage.getItem('site_likes') ? parseInt(localStorage.getItem('site_likes')) : 0;
+        let hasLiked = localStorage.getItem('has_liked') === 'true';
+        document.getElementById('like-count').innerText = likes;
+
+        function handleLike() {
+            if (!hasLiked) {
+                likes++;
+                hasLiked = true;
+                localStorage.setItem('site_likes', likes);
+                localStorage.setItem('has_liked', 'true');
+                document.getElementById('like-count').innerText = likes;
+            } else {
+                alert('כבר עשית לייק לפוסט זה!');
+            }
+        }
+
+        // ניהול תגובות מקומי עם זיהוי אדמין ותג מנהל
+        function loadComments() {
+            let comments = JSON.parse(localStorage.getItem('site_comments') || '[]');
+            let list = document.getElementById('comments-list');
+            list.innerHTML = '';
+            comments.forEach(c => {
+                let div = document.createElement('div');
+                let isAdmin = c.author.trim() === 'עידו';
+                div.className = isAdmin ? 'comment admin' : 'comment';
+                
+                let badgeHtml = isAdmin ? '<span class="admin-badge">תג מנהל</span>' : '';
+                let imageHtml = c.image ? `<br><img src="${c.image}" style="max-width:100%; margin-top:5px; border-radius:4px;">` : '';
+                
+                div.innerHTML = `<strong>${c.author}</strong> ${badgeHtml}: <p style="margin:5px 0;">${c.text}</p>${imageHtml}`;
+                list.appendChild(div);
+            });
+        }
+
+        function addComment() {
+            let author = document.getElementById('comment-author').value;
+            let text = document.getElementById('comment-text').value;
+            let imageInput = document.getElementById('comment-image');
+
+            if (!author || !text) {
+                alert('נא למלא שם ותגובה.');
+                return;
+            }
+
+            let reader = new FileReader();
+            if (imageInput.files && imageInput.files[0]) {
+                reader.onload = function(e) {
+                    saveComment(author, text, e.target.result);
+                }
+                reader.readAsDataURL(imageInput.files[0]);
+            } else {
+                saveComment(author, text, null);
+            }
+        }
+
+        function saveComment(author, text, image) {
+            let comments = JSON.parse(localStorage.getItem('site_comments') || '[]');
+            comments.push({ author, text, image });
+            localStorage.setItem('site_comments', JSON.stringify(comments));
+            
+            document.getElementById('comment-author').value = '';
+            document.getElementById('comment-text').value = '';
+            document.getElementById('comment-image').value = '';
+            loadComments();
+        }
+
+        loadComments();
+    </script>
+</body>
+</html>
